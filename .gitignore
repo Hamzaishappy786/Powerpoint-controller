@@ -1,0 +1,10 @@
+node_modules/
+.expo/
+android/
+ios/
+*.apk
+*.aab
+.env
+local.properties
+dist/
+claude.json
