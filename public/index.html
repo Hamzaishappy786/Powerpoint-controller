@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>PPTX Remote</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: #0f0f0f;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 32px 24px 40px;
+      overflow: hidden;
+    }
+
+    header {
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #aaa;
+    }
+
+    .slide-info {
+      text-align: center;
+    }
+
+    .slide-number {
+      font-size: 5rem;
+      font-weight: 700;
+      line-height: 1;
+      color: #fff;
+      transition: transform 0.15s ease, color 0.2s;
+    }
+
+    .slide-number.pulse {
+      transform: scale(1.12);
+      color: #4f8ef7;
+    }
+
+    .slide-label {
+      font-size: 1rem;
+      color: #555;
+      margin-top: 8px;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #555;
+      margin-right: 6px;
+      transition: background 0.3s;
+    }
+    .status-dot.connected { background: #4ade80; }
+
+    .controls {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .btn {
+      flex: 1;
+      height: 80px;
+      border: none;
+      border-radius: 20px;
+      font-size: 2rem;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.1s, opacity 0.1s;
+      user-select: none;
+    }
+
+    .btn:active {
+      transform: scale(0.92);
+      opacity: 0.75;
+    }
+
+    .btn-prev {
+      background: #1e1e1e;
+      color: #fff;
+    }
+
+    .btn-next {
+      background: #4f8ef7;
+      color: #fff;
+    }
+
+    .goto-section {
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .goto-input {
+      flex: 1;
+      background: #1e1e1e;
+      border: 1.5px solid #333;
+      border-radius: 14px;
+      color: #fff;
+      font-size: 1.1rem;
+      padding: 0 16px;
+      height: 52px;
+      outline: none;
+      text-align: center;
+    }
+
+    .goto-input:focus { border-color: #4f8ef7; }
+
+    .btn-goto {
+      background: #1e1e1e;
+      color: #4f8ef7;
+      border: 1.5px solid #4f8ef7;
+      border-radius: 14px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 0 20px;
+      height: 52px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .btn-goto:active { background: #1a2a45; }
+
+    .swipe-hint {
+      font-size: 0.78rem;
+      color: #333;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1><span class="status-dot" id="dot"></span>PPTX Remote</h1>
+  </header>
+
+  <div class="slide-info">
+    <div class="slide-number" id="slideNum">—</div>
+    <div class="slide-label" id="slideLabel">Connecting...</div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-prev" id="prevBtn">&#8592;</button>
+    <button class="btn btn-next" id="nextBtn">&#8594;</button>
+  </div>
+
+  <div class="goto-section">
+    <input class="goto-input" id="gotoInput" type="number" min="1" placeholder="Slide #" inputmode="numeric" />
+    <button class="btn-goto" id="gotoBtn">Go</button>
+  </div>
+
+  <div class="swipe-hint">Swipe left/right anywhere to change slides</div>
+
+  <script>
+    const slideNum = document.getElementById('slideNum');
+    const slideLabel = document.getElementById('slideLabel');
+    const dot = document.getElementById('dot');
+    const gotoInput = document.getElementById('gotoInput');
+
+    const wsUrl = `ws://${location.host}`;
+    let ws, total = '?';
+
+    function connect() {
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        dot.classList.add('connected');
+        slideLabel.textContent = 'Connected';
+      };
+
+      ws.onclose = () => {
+        dot.classList.remove('connected');
+        slideLabel.textContent = 'Reconnecting...';
+        setTimeout(connect, 2000);
+      };
+
+      ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        if (data.type === 'state') {
+          total = data.total;
+          slideNum.textContent = data.current;
+          slideLabel.textContent = `of ${total} slides`;
+          slideNum.classList.add('pulse');
+          setTimeout(() => slideNum.classList.remove('pulse'), 200);
+        }
+      };
+    }
+
+    function send(action, extra = {}) {
+      if (ws && ws.readyState === 1) ws.send(JSON.stringify({ action, ...extra }));
+    }
+
+    document.getElementById('prevBtn').addEventListener('click', () => send('prev'));
+    document.getElementById('nextBtn').addEventListener('click', () => send('next'));
+
+    document.getElementById('gotoBtn').addEventListener('click', () => {
+      const n = parseInt(gotoInput.value);
+      if (n > 0) { send('goto', { slide: n }); gotoInput.value = ''; }
+    });
+
+    gotoInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('gotoBtn').click();
+    });
+
+    // Swipe support
+    let touchStartX = 0;
+    document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+    document.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(dx) > 60) dx < 0 ? send('next') : send('prev');
+    }, { passive: true });
+
+    connect();
+  </script>
+</body>
+</html>
