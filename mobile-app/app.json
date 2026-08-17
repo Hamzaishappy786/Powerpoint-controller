@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "PPTX Remote",
+    "slug": "pptx-remote",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pptxremote.app",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Used to control PowerPoint when WiFi is unavailable",
+        "NSCameraUsageDescription": "Used to scan QR codes to connect to the presentation server"
+      }
+    },
+    "android": {
+      "package": "com.pptxremote.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f0f0f",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "modes": ["peripheral", "central"],
+          "bluetoothAlwaysPermission": "Allow PPTX Remote to use Bluetooth"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": { "minSdkVersion": 24, "usesCleartextTraffic": true }
+        }
+      ],
+      "expo-camera"
+    ]
+  }
+}
